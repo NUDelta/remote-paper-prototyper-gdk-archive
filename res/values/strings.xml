@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+<<<<<<< HEAD
     <string name="app_name">prototyper</string>
+=======
+    <string name="app_name">Prototyper</string>
+>>>>>>> 681f1751b3302a633dbdc66902643a3cb5031671
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
 
