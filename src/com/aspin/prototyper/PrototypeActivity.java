@@ -3,33 +3,37 @@ package com.aspin.prototyper;
 import android.app.Activity;
 import android.app.ActionBar;
 import android.app.Fragment;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.os.Build;
+import android.provider.MediaStore;
+
+import com.google.android.glass.touchpad.Gesture;
+import com.google.android.glass.touchpad.GestureDetector;
 
 public class PrototypeActivity extends Activity {
 	
-	private static final int TAKE_PICTURE_REQUEST = 1;
-	private static final int TAKE_VIDEO_REQUEST = 2;
-	private GestureDetector mGestureDetector = null;
+	private GestureDetector mGestureDetector;
 
     @Override
     public void onAttachedToWindow() {
+    	// do something when a view is attached to the window
         super.onAttachedToWindow();
-        openOptionsMenu();
     }
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_prototype);
+		mGestureDetector = createGestureDetector(this);
 	}
 
 	@Override
@@ -47,11 +51,12 @@ public class PrototypeActivity extends Activity {
 		// as you specify a parent activity in AndroidManifest.xml.
 		switch (item.getItemId()) {
 			case R.id.start:
-				Intent intent = new Intent (getApplicationContext(), com.aspin.prototyper.CameraActivity.class);
-				startActivityForResult(intent, 0);
+				startActivity(new Intent(PrototypeActivity.this, CameraActivity.class));
+				// Intent intent = new Intent (MediaStore.ACTION_VIDEO_CAPTURE);
+				// startActivityForResult(intent, TAKE_VIDEO_REQUEST);
 				return true;
 			case R.id.quit:
-				// do more stuff
+				finish();
 				return true;
 			default:
 				return super.onOptionsItemSelected(item);
@@ -59,25 +64,54 @@ public class PrototypeActivity extends Activity {
 
 	}
 
-	public void onOptionsMenuClosed(Menu menu) {
-		finish();
+	private GestureDetector createGestureDetector(Context context) {
+		    GestureDetector gestureDetector = new GestureDetector(context);
+		        //Create a base listener for generic gestures
+		        gestureDetector.setBaseListener( new GestureDetector.BaseListener() {
+		            @Override
+		            public boolean onGesture(Gesture gesture) {
+		                if (gesture == Gesture.TAP) {
+		                	openOptionsMenu();
+		                    return true;
+		                } else if (gesture == Gesture.TWO_TAP) {
+		                	return true;
+		                } else if (gesture == Gesture.SWIPE_RIGHT) {
+		                    return true;
+		                } else if (gesture == Gesture.SWIPE_LEFT) {
+		                	return true;
+		                }
+		                
+		                return false;
+		            }
+		        });
+		        gestureDetector.setFingerListener(new GestureDetector.FingerListener() {
+		            @Override
+		            public void onFingerCountChanged(int previousCount, int currentCount) {
+		              // do something on finger count changes
+		            }
+		        });
+		        gestureDetector.setScrollListener(new GestureDetector.ScrollListener() {
+		            @Override
+		            public boolean onScroll(float displacement, float delta, float velocity) {
+		              // do something on scrolling
+		            	
+		            	return true;
+		            }
+		        });
+		        return gestureDetector;
 	}
 
-	/**
-	 * A placeholder fragment containing a simple view.
-	 */
-	public static class PlaceholderFragment extends Fragment {
+    @Override
+    public boolean onGenericMotionEvent(MotionEvent event) {
+        if (mGestureDetector != null) {
+            return mGestureDetector.onMotionEvent(event);
+        }
+        return false;
+    }
 
-		public PlaceholderFragment() {
-		}
 
-		@Override
-		public View onCreateView(LayoutInflater inflater, ViewGroup container,
-				Bundle savedInstanceState) {
-			View rootView = inflater.inflate(R.layout.fragment_prototype,
-					container, false);
-			return rootView;
-		}
+	public void onOptionsMenuClosed(Menu menu) {
+		// do something when menu closes
 	}
 
 }

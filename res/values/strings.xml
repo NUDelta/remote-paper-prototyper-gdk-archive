@@ -5,6 +5,7 @@
     <string name="hello_world">Hello world!</string>
     <string name="start">Connect</string>
     <string name="quit">Quit</string>
+    <string name="stop">Disconnect</string>
     <string name="glass_voice_trigger">Prototype!</string>
     <string name="title_activity_camera">CameraActivity</string>
     <string name="action_settings">Settings</string>
