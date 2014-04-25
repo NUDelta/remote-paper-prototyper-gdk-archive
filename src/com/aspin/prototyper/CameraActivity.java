@@ -2,7 +2,6 @@ package com.aspin.prototyper;
 
 import net.majorkernelpanic.streaming.Session;
 import net.majorkernelpanic.streaming.SessionBuilder;
-import net.majorkernelpanic.streaming.gl.SurfaceView;
 import net.majorkernelpanic.streaming.rtsp.RtspClient;
 import net.majorkernelpanic.streaming.rtsp.RtspServer;
 import net.majorkernelpanic.streaming.video.VideoQuality;
@@ -21,6 +20,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -55,22 +55,21 @@ public class CameraActivity extends Activity {
 		mRelativeLayout = (RelativeLayout) findViewById(R.id.camera_activity);
 		mSurfaceView = (SurfaceView) findViewById(R.id.surface);
 		
-		// Sets the port of the RTSP server to 1234
-		Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
-		editor.putString(RtspServer.KEY_PORT, String.valueOf(1234));
-		editor.commit();
-
 		// Configures the SessionBuilder
-		SessionBuilder.getInstance()
-		.setSurfaceView(mSurfaceView)
+		SessionBuilder sBuilder = SessionBuilder.getInstance()
+		.setSurfaceHolder(mSurfaceView.getHolder())
 		.setContext(getApplicationContext())
 		.setAudioEncoder(SessionBuilder.AUDIO_AAC)
 		.setVideoEncoder(SessionBuilder.VIDEO_H264);
 		
 		// Starts the RTSP server
+		mClient = new RtspClient();
+
+//		mSession = sBuilder.build(); // this line throws an error
+//		mClient.setSession(mSession);
 		this.startService(new Intent(this,RtspServer.class));
 		
-		// startRecord();	
+		startRecord();	
 	}
 	
 	// Experimental function to start camera

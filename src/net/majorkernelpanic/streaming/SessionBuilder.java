@@ -35,6 +35,7 @@ import net.majorkernelpanic.streaming.video.VideoStream;
 import android.content.Context;
 import android.hardware.Camera.CameraInfo;
 import android.preference.PreferenceManager;
+import android.view.SurfaceHolder;
 
 /**
  * Call {@link #getInstance()} to get access to the SessionBuilder.
@@ -72,6 +73,7 @@ public class SessionBuilder {
 	private int mOrientation = 0;
 	private boolean mFlash = false;
 	private SurfaceView mSurfaceView = null;
+	private SurfaceHolder mSurfaceHolder = null;
 	private String mOrigin = null;
 	private String mDestination = null;
 	private Session.Callback mCallback = null;
@@ -219,6 +221,12 @@ public class SessionBuilder {
 	 **/
 	public SessionBuilder setSurfaceView(SurfaceView surfaceView) {
 		mSurfaceView = surfaceView;
+		return this;
+	}
+	
+	// c/p'ed from GlassStream library
+	public SessionBuilder setSurfaceHolder(SurfaceHolder surfaceHolder) {
+		mSurfaceHolder = surfaceHolder;
 		return this;
 	}
 	
