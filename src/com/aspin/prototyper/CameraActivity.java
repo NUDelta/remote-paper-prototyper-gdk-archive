@@ -1,25 +1,32 @@
 package com.aspin.prototyper;
 
+import net.majorkernelpanic.streaming.Session;
+import net.majorkernelpanic.streaming.SessionBuilder;
+import net.majorkernelpanic.streaming.gl.SurfaceView;
+import net.majorkernelpanic.streaming.rtsp.RtspClient;
+import net.majorkernelpanic.streaming.rtsp.RtspServer;
+import net.majorkernelpanic.streaming.video.VideoQuality;
 import android.app.Activity;
 import android.app.ActionBar;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences.Editor;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.PowerManager;
-import android.service.textservice.SpellCheckerService.Session;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.RelativeLayout;
 import android.os.Build;
+import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 
 import com.google.android.glass.touchpad.Gesture;
@@ -27,16 +34,46 @@ import com.google.android.glass.touchpad.GestureDetector;
 
 public class CameraActivity extends Activity {
 	
-	private GestureDetector mGestureDetector;
 	private static final int TAKE_VIDEO_REQUEST = 2;
 
+	private GestureDetector mGestureDetector;
+
+	// streaming related
+	private RelativeLayout mRelativeLayout; 
+	private SurfaceView mSurfaceView;
+	private Session mSession;
+	private PowerManager.WakeLock mWakeLock;
+	private RtspClient mClient;
+	private Boolean recording = false;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_camera);
-		startRecord();	
+		mGestureDetector = createGestureDetector(this);
+
+		mRelativeLayout = (RelativeLayout) findViewById(R.id.camera_activity);
+		mSurfaceView = (SurfaceView) findViewById(R.id.surface);
+		
+		// Sets the port of the RTSP server to 1234
+		Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
+		editor.putString(RtspServer.KEY_PORT, String.valueOf(1234));
+		editor.commit();
+
+		// Configures the SessionBuilder
+		SessionBuilder.getInstance()
+		.setSurfaceView(mSurfaceView)
+		.setContext(getApplicationContext())
+		.setAudioEncoder(SessionBuilder.AUDIO_AAC)
+		.setVideoEncoder(SessionBuilder.VIDEO_H264);
+		
+		// Starts the RTSP server
+		this.startService(new Intent(this,RtspServer.class));
+		
+		// startRecord();	
 	}
 	
+	// Experimental function to start camera
 	public void startRecord() {
 		Intent intent = new Intent (MediaStore.ACTION_VIDEO_CAPTURE);
 		startActivityForResult(intent, TAKE_VIDEO_REQUEST);
@@ -56,10 +93,10 @@ public class CameraActivity extends Activity {
 		// automatically handle clicks on the Home/Up button, so long
 		// as you specify a parent activity in AndroidManifest.xml.
 		switch (item.getItemId()) {
-			case R.id.start:
-				// do stuff
+			case R.id.record:
+				startRecord();
 				return true;
-			case R.id.quit:
+			case R.id.disconnect:
 				// do more stuff
 				return true;
 			default:

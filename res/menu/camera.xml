@@ -3,14 +3,13 @@
     tools:context="com.aspin.prototyper.CameraActivity" >
 
     <item
-        android:id="@+id/action_settings"
-        android:orderInCategory="100"
-        android:showAsAction="never"
-        android:title="@string/action_settings"/>
+        android:id="@+id/record"
+        android:title="@string/record"
+        android:icon="@drawable/ic_delta_logo"/>
 
     <item
-        android:id="@+id/stop"
-        android:title="@string/stop"
+        android:id="@+id/disconnect"
+        android:title="@string/disconnect"
     	android:icon="@drawable/ic_quit" />
 
 </menu>
