@@ -35,7 +35,7 @@ public class CameraActivity extends Activity {
 
 	String user = "hello";
 	String password = "goodbye";
-	String url = "rtsp://192.168.1.229:1935/live/test.sdp";
+	String url = "rtsp://192.168.1.10:1935/live/test.sdp";
 
 	// streaming stuff	
 	private VideoQuality mQuality = QUALITY_GLASS;			
@@ -143,6 +143,8 @@ public class CameraActivity extends Activity {
 		switch (item.getItemId()) {
 			case R.id.quit:
 				new ToggleStreamAsyncTask().execute();
+				recording = false;
+				Log.i("MenuOption", "Attempting to stop?");
 				finish();
 				return true;
 			default:
