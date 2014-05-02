@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2011-2014 GUIGUI Simon, fyhertz@gmail.com
+ * Copyright (C) 2011-2013 GUIGUI Simon, fyhertz@gmail.com
  * 
- * This file is part of libstreaming (https://github.com/fyhertz/libstreaming)
+ * This file is part of Spydroid (http://code.google.com/p/spydroid-ipcamera/)
  * 
  * Spydroid is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +19,18 @@
  */
 
 package net.majorkernelpanic.streaming.mp4;
+
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
+
+import com.coremedia.iso.boxes.SampleDescriptionBox;
+import com.coremedia.iso.boxes.h264.AvcConfigurationBox;
+import com.coremedia.iso.boxes.sampleentry.VisualSampleEntry;
+import com.googlecode.mp4parser.authoring.Movie;
+import com.googlecode.mp4parser.authoring.Track;
+import com.googlecode.mp4parser.authoring.container.mp4.MovieCreator;
 
 import android.util.Base64;
 import android.util.Log;
@@ -30,68 +40,92 @@ import android.util.Log;
  */
 public class MP4Config {
 
-	public final static String TAG = "MP4Config";
-	
-	private MP4Parser mp4Parser;
+	private static final String TAG = "MP4Config";
+
 	private String mProfilLevel, mPPS, mSPS;
 
 	public MP4Config(String profil, String sps, String pps) {
-		mProfilLevel = profil; 
-		mPPS = pps; 
+		mProfilLevel = profil;
+		mPPS = pps;
 		mSPS = sps;
 	}
 
-	public MP4Config(String sps, String pps) {
-		mPPS = pps;
-		mSPS = sps;
-		mProfilLevel = MP4Parser.toHexString(Base64.decode(sps, Base64.NO_WRAP),1,3);
-	}	
-	
-	public MP4Config(byte[] sps, byte[] pps) {
-		mPPS = Base64.encodeToString(pps, 0, pps.length, Base64.NO_WRAP);
-		mSPS = Base64.encodeToString(sps, 0, sps.length, Base64.NO_WRAP);
-		mProfilLevel = MP4Parser.toHexString(sps,1,3);
-	}
-	
 	/**
 	 * Finds sps & pps parameters inside a .mp4.
-	 * @param path Path to the file to analyze
+	 * 
+	 * @param path
+	 *            Path to the file to analyze
 	 * @throws IOException
 	 * @throws FileNotFoundException
 	 */
-	public MP4Config (String path) throws IOException, FileNotFoundException {
-
-		StsdBox stsdBox; 
+	public MP4Config(String path) throws IOException, FileNotFoundException {
+		// Get avc configuration box from movie
+		Movie movie = MovieCreator.build(path);
+		Track track = movie.getTracks().get(0);
+		SampleDescriptionBox stsd = track.getSampleDescriptionBox();
+		VisualSampleEntry vse = (VisualSampleEntry) stsd.getSampleEntry();
+		AvcConfigurationBox avcConfigurationBox = vse.getBoxes(AvcConfigurationBox.class).get(0);
 		
-		// We open the mp4 file and parse it
-		try {
-			mp4Parser = MP4Parser.parse(path);
-		} catch (IOException ignore) {
-			// Maybe enough of the file has been parsed and we can get the stsd box
-		}
-
-		// We find the stsdBox
-		stsdBox = mp4Parser.getStsdBox();
-		mPPS = stsdBox.getB64PPS();
-		mSPS = stsdBox.getB64SPS();
-		mProfilLevel = stsdBox.getProfileLevel();
-
-		mp4Parser.close();
+		// Get SPS bytes
+		byte[] pps = getBytePPS(avcConfigurationBox);
 		
+		// Get PPS bytes
+		byte[] sps = getByteSPS(avcConfigurationBox);
+        
+		// Get config values
+	    mPPS = Base64.encodeToString(pps, 0, pps.length, Base64.NO_WRAP);
+	    mProfilLevel = MP4Config.toHexString(sps, 1, 3);
+	    mSPS = Base64.encodeToString(sps, 0, sps.length, Base64.NO_WRAP);
+		
+		Log.i(TAG, "PPS: " + mPPS + " SPS: " + mSPS + " ProfileLvl: "
+				+ mProfilLevel);
 	}
+	
+	private byte[] getByteSPS(AvcConfigurationBox avcConfigurationBox) {
+        List<byte[]> sps = avcConfigurationBox.getSequenceParameterSets();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            for (byte[] sp : sps) {
+                baos.write(sp);
+            }
+        } catch (IOException ex) {
+            throw new RuntimeException("SPS ByteArrayOutputStream do not throw IOException ?!?!?");
+        }
+        return baos.toByteArray();
+    }
+	
+	private byte[] getBytePPS(AvcConfigurationBox avcConfigurationBox) {
+        List<byte[]> pps = avcConfigurationBox.getPictureParameterSets();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            for (byte[] pp : pps) {
+                baos.write(pp);
+            }
+        } catch (IOException ex) {
+            throw new RuntimeException("PPS ByteArrayOutputStream do not throw IOException ?!?!?");
+        }
+        return baos.toByteArray();
+    }
 
+	static private String toHexString(byte[] buffer,int start, int len) {
+		String c;
+		StringBuilder s = new StringBuilder();
+		for (int i=start;i<start+len;i++) {
+			c = Integer.toHexString(buffer[i]&0xFF);
+			s.append( c.length()<2 ? "0"+c : c );
+		}
+		return s.toString();
+	}
+	
 	public String getProfileLevel() {
 		return mProfilLevel;
 	}
 
 	public String getB64PPS() {
-		Log.d(TAG, "PPS: "+mPPS);
 		return mPPS;
 	}
 
 	public String getB64SPS() {
-		Log.d(TAG, "SPS: "+mSPS);
 		return mSPS;
 	}
-
 }

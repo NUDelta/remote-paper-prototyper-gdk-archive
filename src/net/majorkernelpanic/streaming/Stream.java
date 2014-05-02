@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2011-2014 GUIGUI Simon, fyhertz@gmail.com
+ * Copyright (C) 2011-2013 GUIGUI Simon, fyhertz@gmail.com
  * 
- * This file is part of libstreaming (https://github.com/fyhertz/libstreaming)
+ * This file is part of Spydroid (http://code.google.com/p/spydroid-ipcamera/)
  * 
  * Spydroid is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 package net.majorkernelpanic.streaming;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.InetAddress;
 
 /**
@@ -29,21 +28,7 @@ import java.net.InetAddress;
  */
 public interface Stream {
 
-	/**
-	 * Configures the stream. You need to call this before calling {@link #getSessionDescription()} 
-	 * to apply your configuration of the stream.
-	 */
-	public void configure() throws IllegalStateException, IOException;
-	
-	/**
-	 * Starts the stream.
-	 * This method can only be called after {@link Stream#configure()}.
-	 */
 	public void start() throws IllegalStateException, IOException;
-	
-	/**
-	 * Stops the stream.
-	 */
 	public void stop();
 
 	/**
@@ -75,13 +60,6 @@ public interface Stream {
 	 * @param rtcpPort Destination port that will be used for RTCP
 	 */
 	public void setDestinationPorts(int rtpPort, int rtcpPort);
-
-	/**
-	 * If a TCP is used as the transport protocol for the RTP session,
-	 * the output stream to which RTP packets will be written to must
-	 * be specified with this method.
-	 */ 
-	public void setOutputStream(OutputStream stream, byte channelIdentifier);
 	
 	/** 
 	 * Returns a pair of source ports, the first one is the 
@@ -95,24 +73,20 @@ public interface Stream {
 	 **/
 	public int[] getDestinationPorts();
 	
-
-	/**
-	 * Returns the SSRC of the underlying {@link net.majorkernelpanic.streaming.rtp.RtpSocket}.
-	 * @return the SSRC of the stream.
-	 */
 	public int getSSRC();
 
 	/**
-	 * Returns an approximation of the bit rate consumed by the stream in bit per seconde.
+	 * Returns an approximation of the bitrate of the stream in bit per seconde. 
 	 */
 	public long getBitrate();
 	
 	/**
-	 * Returns a description of the stream using SDP. 
-	 * This method can only be called after {@link Stream#configure()}.
-	 * @throws IllegalStateException Thrown when {@link Stream#configure()} wa not called.
+	 * The SSRC identifier of the stream.
+	 * @return The SSRC
+	 * @throws IllegalStateException
+	 * @throws IOException
 	 */
-	public String getSessionDescription() throws IllegalStateException;
+	public String generateSessionDescription() throws IllegalStateException, IOException;
 
 	public boolean isStreaming();
 

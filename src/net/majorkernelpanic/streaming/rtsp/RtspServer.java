@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2011-2014 GUIGUI Simon, fyhertz@gmail.com
+ * Copyright (C) 2011-2013 GUIGUI Simon, fyhertz@gmail.com
  * 
- * This file is part of libstreaming (https://github.com/fyhertz/libstreaming)
+ * This file is part of Spydroid (http://code.google.com/p/spydroid-ipcamera/)
  * 
  * Spydroid is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -296,9 +296,9 @@ public class RtspServer extends Service {
 	 */
 	protected Session handleRequest(String uri, Socket client) throws IllegalStateException, IOException {
 		Session session = UriParser.parse(uri);
-		session.setOrigin(client.getLocalAddress().getHostAddress());
+		session.setOrigin(client.getLocalAddress());
 		if (session.getDestination()==null) {
-			session.setDestination(client.getInetAddress().getHostAddress());
+			session.setDestination(client.getInetAddress());
 		}
 		return session;
 	}
@@ -411,11 +411,11 @@ public class RtspServer extends Service {
 
 			// Streaming stops when client disconnects
 			boolean streaming = isStreaming();
-			mSession.syncStop();
+			mSession.stop();
 			if (streaming && !isStreaming()) {
 				postMessage(MESSAGE_STREAMING_STOPPED);
 			}
-			mSession.release();
+			mSession.flush();
 
 			try {
 				mClient.close();
@@ -436,8 +436,7 @@ public class RtspServer extends Service {
 				// Parse the requested URI and configure the session
 				mSession = handleRequest(request.uri, mClient);
 				mSessions.put(mSession, null);
-				mSession.syncConfigure();
-				
+
 				String requestContent = mSession.getSessionDescription();
 				String requestAttributes = 
 						"Content-Base: "+mClient.getLocalAddress().getHostAddress()+":"+mClient.getLocalPort()+"/\r\n" +
@@ -466,7 +465,7 @@ public class RtspServer extends Service {
 			else if (request.method.equalsIgnoreCase("SETUP")) {
 				Pattern p; Matcher m;
 				int p2, p1, ssrc, trackId, src[];
-				String destination;
+				InetAddress destination;
 
 				p = Pattern.compile("trackID=(\\w+)",Pattern.CASE_INSENSITIVE);
 				m = p.matcher(request.uri);
@@ -503,13 +502,13 @@ public class RtspServer extends Service {
 				mSession.getTrack(trackId).setDestinationPorts(p1, p2);
 				
 				boolean streaming = isStreaming();
-				mSession.syncStart(trackId);
+				mSession.start(trackId);
 				if (!streaming && isStreaming()) {
 					postMessage(MESSAGE_STREAMING_STARTED);
 				}
 
-				response.attributes = "Transport: RTP/AVP/UDP;"+(InetAddress.getByName(destination).isMulticastAddress()?"multicast":"unicast")+
-						";destination="+mSession.getDestination()+
+				response.attributes = "Transport: RTP/AVP/UDP;"+(destination.isMulticastAddress()?"multicast":"unicast")+
+						";destination="+mSession.getDestination().getHostAddress()+
 						";client_port="+p1+"-"+p2+
 						";server_port="+src[0]+"-"+src[1]+
 						";ssrc="+Integer.toHexString(ssrc)+

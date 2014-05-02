@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2011-2014 GUIGUI Simon, fyhertz@gmail.com
+ * Copyright (C) 2011 GUIGUI Simon, fyhertz@gmail.com
  * 
- * This file is part of libstreaming (https://github.com/fyhertz/libstreaming)
+ * This file is part of Spydroid (http://code.google.com/p/spydroid-ipcamera/)
  * 
  * Spydroid is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,9 +22,10 @@ package net.majorkernelpanic.streaming.rtp;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.util.Random;
+
+import android.util.Log;
 
 import net.majorkernelpanic.streaming.rtcp.SenderReport;
 
@@ -36,9 +37,6 @@ import net.majorkernelpanic.streaming.rtcp.SenderReport;
 abstract public class AbstractPacketizer {
 
 	protected static final int rtphl = RtpSocket.RTP_HEADER_LENGTH;
-	
-	// Maximum size of RTP packets
-	protected final static int MAXPACKETSIZE = RtpSocket.MTU-28;
 
 	protected RtpSocket socket = null;
 	protected InputStream is = null;
@@ -46,7 +44,7 @@ abstract public class AbstractPacketizer {
 	
 	protected long ts = 0;
 
-	public AbstractPacketizer() {
+	public AbstractPacketizer() throws IOException {
 		int ssrc = new Random().nextInt();
 		ts = new Random().nextInt();
 		socket = new RtpSocket();
@@ -56,6 +54,11 @@ abstract public class AbstractPacketizer {
 	public RtpSocket getRtpSocket() {
 		return socket;
 	}
+
+	public SenderReport getRtcpSocket() {
+		return socket.getRtcpSocket();
+	}
+
 
 	public void setSSRC(int ssrc) {
 		socket.setSSRC(ssrc);
@@ -68,7 +71,7 @@ abstract public class AbstractPacketizer {
 	public void setInputStream(InputStream is) {
 		this.is = is;
 	}
-	
+
 	public void setTimeToLive(int ttl) throws IOException {
 		socket.setTimeToLive(ttl);
 	}
@@ -84,7 +87,7 @@ abstract public class AbstractPacketizer {
 	}
 
 	/** Starts the packetizer. */
-	public abstract void start();
+	public abstract void start() throws IOException;
 
 	/** Stops the packetizer. */
 	public abstract void stop();

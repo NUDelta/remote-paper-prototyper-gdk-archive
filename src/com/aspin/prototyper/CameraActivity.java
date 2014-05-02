@@ -1,33 +1,28 @@
 package com.aspin.prototyper;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import net.majorkernelpanic.streaming.Session;
 import net.majorkernelpanic.streaming.SessionBuilder;
 import net.majorkernelpanic.streaming.rtsp.RtspClient;
-import net.majorkernelpanic.streaming.rtsp.RtspServer;
 import net.majorkernelpanic.streaming.video.VideoQuality;
 import android.app.Activity;
-import android.app.ActionBar;
-import android.app.Fragment;
 import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences.Editor;
 import android.content.pm.ActivityInfo;
+import android.media.MediaRecorder;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.SoundEffectConstants;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.RelativeLayout;
-import android.os.Build;
-import android.preference.PreferenceManager;
-import android.provider.MediaStore;
+import android.widget.Toast;
 
 import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
@@ -36,21 +31,37 @@ public class CameraActivity extends Activity {
 	
 	private static final int TAKE_VIDEO_REQUEST = 2;
 
-	private GestureDetector mGestureDetector;
+	private final static VideoQuality QUALITY_GLASS = new VideoQuality(352, 288, 60, 384000);
 
-	// streaming related
+	String user = "hello";
+	String password = "goodbye";
+	String url = "rtsp://192.168.1.229:1935/live/test.sdp";
+
+	// streaming stuff	
+	private VideoQuality mQuality = QUALITY_GLASS;			
 	private RelativeLayout mRelativeLayout; 
 	private SurfaceView mSurfaceView;
 	private Session mSession;
 	private PowerManager.WakeLock mWakeLock;
 	private RtspClient mClient;
 	private Boolean recording = false;
-	
+
+	private GestureDetector mGestureDetector;
+		
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_camera);
 		mGestureDetector = createGestureDetector(this);
+		mRelativeLayout = (RelativeLayout) findViewById(R.id.camera_activity);
+
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+		mSurfaceView = (SurfaceView) findViewById(R.id.surface);
+				
+		// // Sets the port of the RTSP server to 1234
+		// Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
+		// editor.putString(RtspServer.KEY_PORT, String.valueOf(1234));
+		// editor.commit();
 
 		mRelativeLayout = (RelativeLayout) findViewById(R.id.camera_activity);
 		mSurfaceView = (SurfaceView) findViewById(R.id.surface);
@@ -60,23 +71,61 @@ public class CameraActivity extends Activity {
 		.setSurfaceHolder(mSurfaceView.getHolder())
 		.setContext(getApplicationContext())
 		.setAudioEncoder(SessionBuilder.AUDIO_AAC)
-		.setVideoEncoder(SessionBuilder.VIDEO_H264);
+		.setVideoEncoder(SessionBuilder.VIDEO_H264)
+		.setVideoQuality(QUALITY_GLASS);
 		
-		// Starts the RTSP server
+		// creates the RTSP Client
 		mClient = new RtspClient();
 
-//		mSession = sBuilder.build(); // this line throws an error
-//		mClient.setSession(mSession);
-		this.startService(new Intent(this,RtspServer.class));
+		try {
+			mSession = sBuilder.build();
+			mClient.setSession(mSession);
+		} catch (Exception e) {
+			logError(e.getMessage());
+			e.printStackTrace();
+		}
+
+		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+		mWakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK,"net.majorkernelpanic.example3.wakelock");
+
+		mSurfaceView.getHolder().addCallback(new SurfaceHolder.Callback() {
+
+			@Override
+			public void surfaceCreated(SurfaceHolder holder) {
+				if (mSession != null) {
+					try {
+						if (mSession.getVideoTrack() != null) {
+							mSession.getVideoTrack().setVideoQuality(mQuality);
+							
+							// Start streaming
+							new ToggleStreamAsyncTask().execute();
+
+						}
+					} catch (RuntimeException e) {
+						logError(e.getMessage());
+						e.printStackTrace();
+					}
+				}
+			}
+
+			@Override
+			public void surfaceChanged(SurfaceHolder holder, int format, int width,int height) {
+				Log.i("CameraActivity", "surfaceChanged()");
+			}
+
+			@Override
+			public void surfaceDestroyed(SurfaceHolder holder) {
+				Log.i("CameraActivity", "surfaceDestroyed()");
+			}
+
+		});
 		
-		startRecord();	
+		//Setting recording state to enabled
+		recording = true;
+		// startRecord();	
 	}
 	
-	// Experimental function to start camera
-	public void startRecord() {
-		Intent intent = new Intent (MediaStore.ACTION_VIDEO_CAPTURE);
-		startActivityForResult(intent, TAKE_VIDEO_REQUEST);
-	}
+	
 	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -92,17 +141,95 @@ public class CameraActivity extends Activity {
 		// automatically handle clicks on the Home/Up button, so long
 		// as you specify a parent activity in AndroidManifest.xml.
 		switch (item.getItemId()) {
-			case R.id.record:
-				startRecord();
-				return true;
-			case R.id.disconnect:
-				// do more stuff
+			case R.id.quit:
+				new ToggleStreamAsyncTask().execute();
+				finish();
 				return true;
 			default:
 				return super.onOptionsItemSelected(item);
 		}
 
 	}
+
+	private void startStream() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	// Connects/disconnects to the RTSP server and starts/stops the stream
+	private class ToggleStreamAsyncTask extends AsyncTask<Void,Void,Integer> {
+
+		private final int START_SUCCEEDED = 0x00;
+		private final int START_FAILED = 0x01;
+		private final int STOP = 0x02;
+
+		@Override
+		protected Integer doInBackground(Void... params) {
+			if (!mClient.isStreaming()) {
+				String ip,port,path;
+				try {
+					// We parse the URI written in the Editext
+					Pattern uri = Pattern.compile("rtsp://(.+):(\\d+)/(.+)");
+					Matcher m = uri.matcher(url); m.find();
+
+					ip = m.group(1);
+					port = m.group(2);
+					path = m.group(3);
+					
+					// Connection to the RTSP server
+					if (mSession.getVideoTrack() != null) {
+						mSession.getVideoTrack().setVideoQuality(mQuality);
+					}
+					mClient.setCredentials(user, password);
+					mClient.setServerAddress(ip, Integer.parseInt(port));
+					mClient.setStreamPath("/"+path);
+					mClient.startStream(1);
+					
+					// Init recording flag
+					recording = true;
+					
+					return START_SUCCEEDED;
+				} catch (Exception e) {
+					Log.e("CameraActivity", "Error starting stream.", e);
+					Toast.makeText(getApplicationContext(), e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+					return START_FAILED;
+				}
+			} else {
+				// Stops the stream and disconnects from the RTSP server
+				mClient.stopStream();				
+				// Setting recording state to disabled
+				recording = false;
+				Log.i("CameraActivity", "*** Recording stopStream()");
+				finish();
+			}
+			return STOP;
+		}
+
+	}
+	
+	// Disconnects from the RTSP server and stops the stream
+	private class StopStreamAsyncTask extends AsyncTask<Void,Void,Void> {
+		@Override
+		protected Void doInBackground(Void... params) {
+				mClient.stopStream();
+				return null;
+		}
+	}
+	
+
+
+	private void logError(String msg) {
+		final String error = (msg == null) ? "Error unknown" : msg; 
+		Log.e("CameraActivity",error);
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				Toast.makeText(CameraActivity.this, error, Toast.LENGTH_SHORT).show();	
+			}
+		});
+	}
+
+
 
 	private GestureDetector createGestureDetector(Context context) {
 	    GestureDetector gestureDetector = new GestureDetector(context);
@@ -148,5 +275,47 @@ public class CameraActivity extends Activity {
         }
         return false;
     }
+
+	@Override
+	public void onStart() {
+		super.onStart();
+		mWakeLock.acquire();		
+	}
+	
+	@Override
+	protected void onResume() {
+		super.onResume();
+	}
+
+	@Override
+	public void onStop() {
+		if (mWakeLock.isHeld()) mWakeLock.release();
+			// Setting recording state to disabled
+			recording = false;
+			mSession.flush();
+			
+			// Stops the stream and disconnects from the RTSP server
+			mClient.stopStream();			
+		
+			setResult(PrototypeActivity.RESULT_OK);
+			super.onStop();
+	}	
+	
+	@Override
+	protected void onPause() {
+
+		//Stops the stream and disconnects from the RTSP server
+		mClient.stopStream();
+		
+		// Unlock screen
+		if (mWakeLock.isHeld()) mWakeLock.release();
+		// Setting recording state to disabled
+		recording = false;
+
+		mSession.flush();
+
+		setResult(PrototypeActivity.RESULT_OK);
+		super.onPause();
+	}
 
 }
