@@ -18,6 +18,14 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
         android:layout_toLeftOf="@+id/layout" />
+    
+    <TextView
+        android:id="@+id/comText"
+        android:layout_width="280px"
+     	android:layout_height="360px"
+     	android:gravity="center"
+     	android:text="test Text" />
+          
 
 
 </RelativeLayout>
