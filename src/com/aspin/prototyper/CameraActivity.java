@@ -1,7 +1,15 @@
 package com.aspin.prototyper;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.jsoup.Jsoup;
 
 import net.majorkernelpanic.streaming.Session;
 import net.majorkernelpanic.streaming.SessionBuilder;
@@ -10,10 +18,15 @@ import net.majorkernelpanic.streaming.video.VideoQuality;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
+import android.location.Location;
+import android.media.AudioManager;
 import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.os.Handler;
 import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -22,8 +35,10 @@ import android.view.SoundEffectConstants;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.glass.media.Sounds;
 import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
 
@@ -35,7 +50,7 @@ public class CameraActivity extends Activity {
 
 	String user = "hello";
 	String password = "goodbye";
-	String url = "rtsp://192.168.1.9:1935/live/test.sdp";
+	String url = "rtsp://192.168.1.2:1935/live/test.sdp";
 
 	// streaming stuff	
 	private VideoQuality mQuality = QUALITY_GLASS;			
@@ -47,6 +62,9 @@ public class CameraActivity extends Activity {
 	private Boolean recording = false;
 
 	private GestureDetector mGestureDetector;
+    private static final long DELAY_MILLIS = 3000;
+    private String message1 = "Connected."; // change later to be connected the strings.xml file
+    private TextView mTextView;
 		
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +83,7 @@ public class CameraActivity extends Activity {
 
 		mRelativeLayout = (RelativeLayout) findViewById(R.id.camera_activity);
 		mSurfaceView = (SurfaceView) findViewById(R.id.surface);
+		mTextView = (TextView) findViewById(R.id.comText);
 		
 		// Configures the SessionBuilder
 		SessionBuilder sBuilder = SessionBuilder.getInstance()
@@ -123,6 +142,7 @@ public class CameraActivity extends Activity {
 		//Setting recording state to enabled
 		recording = true;
 		// startRecord();	
+		new ChatUpdateAsync().execute();
 	}
 	
 	
@@ -141,7 +161,7 @@ public class CameraActivity extends Activity {
 		// automatically handle clicks on the Home/Up button, so long
 		// as you specify a parent activity in AndroidManifest.xml.
 		switch (item.getItemId()) {
-			case R.id.quit:
+			case R.id.disconnect:
 				mClient.stopStream();
 				recording = false;
 				Log.i("MenuOption", "Attempting to stop?");
@@ -319,5 +339,68 @@ public class CameraActivity extends Activity {
 		setResult(PrototypeActivity.RESULT_OK);
 		super.onPause();
 	}
+	
+	private class ChatUpdateAsync extends AsyncTask<Void, Void, Void> {
+      
+		@Override
+		protected Void doInBackground(Void... arg0) {
+        	String text = "fff";
+        	try {
+				Thread.sleep(DELAY_MILLIS);
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			try {
+				text = Jsoup.parse(new URL("http://kevinjchen.com/indexOLD.html"), 20000).text();
+			}
+			catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} 
+			catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        	Log.d("text", text);
+        	
+        	if (!text.equals(message1)) {
+        		message1 = text;
+        	}
+			return null;
+		}
+		
+		@Override
+		protected void onPostExecute(Void result) {
+			Log.d("Getting text.", message1);
+			mTextView.setText(message1);
+				    	 
+	    	new ChatUpdateAsync().execute();
+	    }
 
+		@Override
+		protected void onCancelled() {
+			// TODO Auto-generated method stub
+			super.onCancelled();
+		}
+
+		@Override
+		protected void onCancelled(Void result) {
+			// TODO Auto-generated method stub
+			super.onCancelled(result);
+		}
+
+		@Override
+		protected void onPreExecute() {
+			// TODO Auto-generated method stub
+			super.onPreExecute();
+		}
+
+		@Override
+		protected void onProgressUpdate(Void... values) {
+			// TODO Auto-generated method stub
+			super.onProgressUpdate(values);
+		}
+    }
+	
 }
