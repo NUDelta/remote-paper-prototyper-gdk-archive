@@ -12,7 +12,7 @@ prototyper is an application built for Google Glass to enable unique new types o
 NB: 2-4 are all currently WIP.
 
 ## Usage
-prototyper requires some sort of media server that will receive an RTSP stream (for example, [Wowza](http://www.wowza.com/)). The address of this server and a username/password must hardcoded into the CameraActivity section of the application before deploying to Glass (so naturally, a static server would be most preferred). Once this is done, open up the Glass application and choose "Connect" from the menu. The stream can then be viewed using at [kevinjchen.com].
+prototyper requires some sort of media server that will receive an RTSP stream (for example, [Wowza](http://www.wowza.com/)). The address of this server and a username/password must hardcoded into the CameraActivity section of the application before deploying to Glass (so naturally, a static server would be most preferred). Once this is done, open up the Glass application and choose "Connect" from the menu. The stream can then be viewed using at [kevinjchen.com](kevinjchen.com).
 
 ## Technologies Used
 This application uses the [libstreaming](https://github.com/fyhertz/libstreaming) library, while building heavily off of the [GlassStream](https://github.com/andermaco/GlassStream) github repository.
