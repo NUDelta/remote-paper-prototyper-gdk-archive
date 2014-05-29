@@ -3,6 +3,11 @@ package com.aspin.prototyper;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,6 +16,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 
+import com.parse.FindCallback;
+import com.parse.GetCallback;
+import com.parse.Parse;
+import com.parse.ParseAnalytics;
+import com.parse.ParseException;
+import com.parse.ParseObject;
+import com.parse.ParseQuery;
+
 import net.majorkernelpanic.streaming.Session;
 import net.majorkernelpanic.streaming.SessionBuilder;
 import net.majorkernelpanic.streaming.rtsp.RtspClient;
@@ -18,7 +31,9 @@ import net.majorkernelpanic.streaming.video.VideoQuality;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
+import android.location.Criteria;
 import android.location.Location;
+import android.location.LocationManager;
 import android.media.AudioManager;
 import android.media.MediaRecorder;
 import android.os.AsyncTask;
@@ -27,6 +42,8 @@ import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.TextToSpeech.OnInitListener;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -50,7 +67,8 @@ public class CameraActivity extends Activity {
 
 	String user = "hello";
 	String password = "goodbye";
-	String url = "rtsp://192.168.1.5:1935/live/test.sdp";
+	String url = "rtsp://glass.ci.northwestern.edu:4000/live/test.sdp";
+//	String url = "rtsp://192.168.1.9:1935/live/test.sdp";
 
 	// streaming stuff	
 	private VideoQuality mQuality = QUALITY_GLASS;			
@@ -63,15 +81,24 @@ public class CameraActivity extends Activity {
 
 	private GestureDetector mGestureDetector;
     private static final long DELAY_MILLIS = 3000;
-    private String message1 = "Connected."; // change later to be connected the strings.xml file
+    private String prevMessage = "";
+    private String currentMessage = "Connecting..."; // change later to be connected the strings.xml file
     private TextView mTextView;
+    private TextToSpeech tts;
 		
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
+		Parse.initialize(this, "3dgBmw9ZzGVprNrdoNuQZ4TgmWzjkc8rc5HT3quP", "U7bbsU5rY5yUy8twRgSrvz46SUvL1O7OlrS2U8JP");
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_camera);
 		mGestureDetector = createGestureDetector(this);
 		mRelativeLayout = (RelativeLayout) findViewById(R.id.camera_activity);
+		tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+			@Override
+			public void onInit(int status) {
+			}
+		});
+		tts.setLanguage(Locale.US);
 
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 		mSurfaceView = (SurfaceView) findViewById(R.id.surface);
@@ -197,6 +224,9 @@ public class CameraActivity extends Activity {
 					ip = m.group(1);
 					port = m.group(2);
 					path = m.group(3);
+					Log.d("ip: ", ip);
+					Log.d("port: ", port);
+					Log.d("path: ", path);
 					
 					// Connection to the RTSP server
 					if (mSession.getVideoTrack() != null) {
@@ -209,7 +239,7 @@ public class CameraActivity extends Activity {
 					
 					// Init recording flag
 					recording = true;
-					
+					currentMessage = "You are now streaming.";
 					return START_SUCCEEDED;
 				} catch (Exception e) {
 					Log.e("CameraActivity", "Error starting stream.", e);
@@ -344,38 +374,91 @@ public class CameraActivity extends Activity {
       
 		@Override
 		protected Void doInBackground(Void... arg0) {
-        	String text = "fff";
+        	String text = "Connecting...";
         	try {
 				Thread.sleep(DELAY_MILLIS);
 			} catch (InterruptedException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
-			try {
-				text = Jsoup.parse(new URL("http://kevinjchen.com/indexOLD.html"), 20000).text();
-			}
-			catch (MalformedURLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} 
-			catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-        	Log.d("text", text);
+//			try {
+//				text = Jsoup.parse(new URL("http://kevinjchen.com/message.html"), 20000).text();
+//			}
+//			catch (MalformedURLException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			} 
+//			catch (IOException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+        	ParseQuery<ParseObject> query = ParseQuery.getQuery("message");
+        	query.findInBackground(new FindCallback<ParseObject>() {
+
+				@Override
+				public void done(List<ParseObject> message, ParseException e) {
+			        if (e == null) {
+			            Log.d("Message", "Retrieved " + message.get(0).getString("msg"));
+			            currentMessage = message.get(0).getString("msg");
+			            
+			        } else {
+			            Log.d("Message", "Error: " + e.getMessage());
+			        }
+				}
+        		
+        	});
         	
-        	if (!text.equals(message1)) {
-        		message1 = text;
-        	}
+        	// requires testing
+        	final Location loc = getLastLocation(CameraActivity.this);
+        	Log.d("Location", "Lat: " + loc.getLatitude());
+        	Log.d("Location", "Long: " + loc.getLongitude());
+        	
+        	ParseQuery<ParseObject> query2 = ParseQuery.getQuery("location");
+        	query2.findInBackground(new FindCallback<ParseObject>() {
+        		
+        		@Override
+        		public void done(List<ParseObject> results, ParseException e) {
+        			if (e == null) {
+        				if (results.size() == 0) {
+        					// make new object        					
+        				}
+        				else {
+        					results.get(0).put("lat", loc.getLatitude());
+        					results.get(0).put("lon", loc.getLongitude());
+        					results.get(0).saveInBackground();
+        				}
+        			}
+        			else {
+        				Log.d("location", "Error: " + e.getMessage());
+        			}
+        		}
+        	});
+        	
+        	
+        	
+        	
+
 			return null;
 		}
 		
 		@Override
 		protected void onPostExecute(Void result) {
-			Log.d("Getting text.", message1);
-			mTextView.setText(message1);
-				    	 
-	    	new ChatUpdateAsync().execute();
+			Log.d("Getting text.", currentMessage);
+			if (!currentMessage.equals(prevMessage)) {
+				mTextView.setText(currentMessage);
+				prevMessage = currentMessage;
+				Log.d("Getting prev text.", prevMessage);
+				
+				AudioManager audio = (AudioManager) CameraActivity.this.getSystemService(Context.AUDIO_SERVICE);
+				audio.playSoundEffect(Sounds.SUCCESS);
+				
+				tts.speak(currentMessage, TextToSpeech.QUEUE_ADD, null);
+			}
+
+			if (recording == true) {
+		    	new ChatUpdateAsync().execute();				
+			}
+
 	    }
 
 		@Override
@@ -402,5 +485,29 @@ public class CameraActivity extends Activity {
 			super.onProgressUpdate(values);
 		}
     }
+	
+    public static Location getLastLocation(Context context) {
+        LocationManager manager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.NO_REQUIREMENT);
+        List<String> providers = manager.getProviders(criteria, true);
+        List<Location> locations = new ArrayList<Location>();
+        for (String provider : providers) {
+             Location location = manager.getLastKnownLocation(provider);
+             if (location != null && location.getAccuracy() !=0.0) {
+                 locations.add(location);
+             }
+        }
+        Collections.sort(locations, new Comparator<Location>() {
+            @Override
+            public int compare(Location location, Location location2) {
+                return (int) (location.getAccuracy() - location2.getAccuracy());
+            }
+        });
+        if (locations.size() > 0) {
+            return locations.get(0);
+        }
+        return null;
+   }
 	
 }

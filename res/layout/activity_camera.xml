@@ -12,8 +12,8 @@
 
     <SurfaceView
         android:id="@+id/surface"
-        android:layout_width="1px"
-        android:layout_height="1px"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:layout_above="@+id/layout2"
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
@@ -24,7 +24,7 @@
         android:layout_width="280px"
      	android:layout_height="360px"
      	android:gravity="center"
-     	android:text="Connected." />
+     	android:text="Connecting..." />
           
 
 
