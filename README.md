@@ -29,6 +29,7 @@ sudo iptables -I INPUT -p tcp --dport 6972 -j ACCEPT
 And so on.
 
 ## File Setup
+The application's files are setup much like a typical Android application. PrototypeActivity.java controls the main menu landing while CameraActivity.java handles the streaming interface and data communication activity.
 
 ## Technologies Used
 This application uses the [libstreaming](https://github.com/fyhertz/libstreaming) library, while building heavily off of the [GlassStream](https://github.com/andermaco/GlassStream) github repository.
