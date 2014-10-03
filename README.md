@@ -1,7 +1,7 @@
-prototyper
+remote-paper-prototyper-glass
 ==========
 
-prototyper is an application built for Google Glass to enable unique new types of interactions between users and developers, especially when building or exploring socially based technologies. This application means to more freely separates a user tester from the observer, while still retaining useful lines of communication between the two and collecting important data.
+RPP is an application built for Google Glass to enable unique new types of interactions between users and developers, especially when building or exploring socially based technologies. This application means to more freely separates a user tester from the observer, while still retaining useful lines of communication between the two and collecting important data.
 
 ## Features
 1. Stream video from Glass to web server.
@@ -12,7 +12,7 @@ prototyper is an application built for Google Glass to enable unique new types o
 **Work-in-progress
 
 ## Usage
-prototyper requires some sort of media server that will receive an RTSP stream (for example, [Wowza](http://www.wowza.com/)). The address of this server and a username/password must hardcoded into the CameraActivity section of the application before deploying to Glass (so naturally, a static server would be most preferred). Once this is done, open up the Glass application and choose "Connect" from the menu. The stream can then be viewed using the [command center webpage](https://github.com/NUDelta/prototype-cc).
+RPP requires some sort of media server that will receive an RTSP stream (for example, [Wowza](http://www.wowza.com/)). The address of this server and a username/password must hardcoded into the CameraActivity section of the application before deploying to Glass (so naturally, a static server would be most preferred). Once this is done, open up the Glass application and choose "Connect" from the menu. The stream can then be viewed using the [command center webpage](https://github.com/NUDelta/remote-paper-prototyper-web).
 
 ## Example Setup
 We tested our software setup on virtual machine running Red Hat Enterprise Linux with the aforementioned Wowza Media Server.
