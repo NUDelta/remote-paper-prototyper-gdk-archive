@@ -1,6 +1,8 @@
 remote-paper-prototyper-gdk
 ==========
 
+FIX CAMERA RELEASE BY OPENTOK....
+
 RPP is an application built for Google Glass to enable unique new types of interactions between users and developers, especially when building or exploring socially based technologies. This application means to more freely separates a user tester from the observer, while still retaining useful lines of communication between the two and collecting important data.
 
 ## Features
